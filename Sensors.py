@@ -1,3 +1,4 @@
+import datetime
 import random
 import sys
 import time
@@ -134,51 +135,35 @@ def get_ph(npk_vals):
     # here between 5 and 8
     return 0.05*npk_vals+5
 
-def Nutrition_Actuator(npk_val,lastFeeding):
-    if(npk_val<=40):
-        lastFeeding-=5
-    elif(npk_val>=40 and npk_val<=50):
-        lastFeeding-=2
-    return lastFeeding
-
-def Water_Actuator(humidity,lastWatering):
-    
-    if(humidity<=45 and lastWatering>10):
-        lastWatering-=10
-    elif(humidity<=50 and lastWatering>10):
-        lastWatering-=4
-    
-    return lastWatering
-
-
-# CLIENT PAHO
-port = 1883
-broker = f'mqtt://172.23.96.1:{port}/'
-username = 'agricultureLove'
-password = 'se4gd'
-client_id = f'Solar_Client'
-client = paho.Client(client_id)
-client.username_pw_set(username, password)
-if client.connect("localhost",1883,60)!=0:
-    print("Could not connect to MQTT Broker!")
-    sys.exit(-1)
-else:
-    print("connected")
-client.publish("test/status","Hello World from paho", 0)
-client.disconnect()
+def paho_client():
+    # CLIENT PAHO
+    port = 1883
+    broker = f'mqtt://192.168.199.161:{port}/'
+    username = 'agricultureLove'
+    password = 'se4gd'
+    client_id = f'Solar_Client'
+    client = paho.Client(client_id)
+    client.username_pw_set(username, password)
+    if client.connect("localhost",1883,60)!=0:
+        print("Could not connect to MQTT Broker!")
+        sys.exit(-1)
+    else:
+        print("connected")
+    return client
+    #client.disconnect()
 
 
 
 # Pressure()
 # solarEval()
-def main():
+def main(client):
     val = random.randint(0,35000)
     i = 0
     lastFeeding = 40
     lastWatering = 10
-    Solar,Pressure,Temp,Humidity,npk_val,ph,soil_moist = 0,0,0,0,0,0,0
     while(True):
-        #time.sleep(1)
+        Solar,Pressure,Temp,Humidity,npk_val,ph,soil_moist,time_stamp = None,None,None,None,None,None,None,datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
+        time.sleep(3)
         [nextVal,Solar] = get_solar_irr(val)
         if(Solar>0.0):
             # Converted from Pascal to Percent
@@ -193,10 +178,18 @@ def main():
             soil_moist = get_soil_moist(val,Temp,lastWatering)
             # In ph Scale
             ph = get_ph(npk_val)
-            # For Activation of Nutrition Actuator
-            lastFeeding = Nutrition_Actuator(npk_val,lastFeeding)
-            # For Activation of Water Actuator
-            lastWatering = Water_Actuator(soil_moist,lastWatering)
+            
+        client.publish("Agriculture/solar",Solar)
+        client.publish("Agriculture/pressure",Pressure)
+        client.publish("Agriculture/temp",Temp)
+        client.publish("Agriculture/humidity",Humidity)
+        client.publish("Agriculture/npk_val",npk_val)
+        client.publish("Agriculture/soil_moist",soil_moist)
+        client.publish("Agriculture/ph",ph)
+        client.publish("Agriculture/nutriScore",lastFeeding)
+        client.publish("Agriculture/waterScore",lastWatering)
+        client.publish("Agriculture/timeStamp",time_stamp)
+
         lastFeeding+=1
         if(lastWatering<100):
             lastWatering+=1
@@ -217,8 +210,8 @@ def main():
         #     f_object.close()
 
 
-
-#main()
+client = paho_client()
+main(client)
 
 plt.rcParams["figure.figsize"] = [7.50, 3.50]
 plt.rcParams["figure.autolayout"] = True
