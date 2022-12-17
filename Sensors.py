@@ -3,45 +3,37 @@ import random
 import sys
 import time
 import pandas as pd
-import matplotlib.pyplot as plt
-import numpy as np 
 from csv import writer
 import paho.mqtt.client as paho
 
-def solarEval():
-    # 1000 ist unsere Grenze
-    Threshhold = 1000
-    energy_data = pd.read_csv("Data_set.csv")
-    solar = energy_data["generation solar"]
-    minMaxSolar = (solar - solar.min())/(solar.max()-solar.min())
-    beta = 24*7*4*5
-    alpha = 24+beta
-    plt.plot(solar.index[beta:alpha], solar.values[beta:alpha])
-    plt.title('title name')
-    plt.xlabel('x_axis name')
-    plt.ylabel('y_axis name')
-    plt.show()
+def Nutrition_Actuator(npk_val):
+    lastFeeding = 0
+    if(npk_val<=40):
+        lastFeeding+=5
+    elif(npk_val<=35):
+        lastFeeding+=8
+    elif(npk_val<=30):
+        lastFeeding+=10
+    return lastFeeding
 
-def Pressure():
-    # 1000 ist unsere Grenze
-    energy_data = pd.read_csv("Data_set.csv")
-    pressure = energy_data["pressure"]
-    minMaxSolar = (pressure - pressure.min())/(pressure.max()-pressure.min())
-    beta = 24*7*4*3
-    print("PRESSURE")
-    print(pressure.min(),pressure.max())
-    beta = 24*7*4*8
-    alpha = 24*7+beta
-    plt.plot(pressure.index[beta:alpha], pressure.values[beta:alpha])
-    plt.title('title name')
-    plt.xlabel('x_axis name')
-    plt.ylabel('y_axis name')
-    plt.show()
+def Water_Actuator(humidity):
+    lastWatering = 0
+    if(humidity<=45):
+        lastWatering+=10
+    elif(humidity<=50):
+        lastWatering+=4
+    elif(humidity<=30):
+        lastWatering+=20
+    elif(humidity<=10):
+        lastWatering+=30
+    
+    return lastWatering
+
 
 def get_solar_irr(lastVal):
     # 1000 ist unsere Grenze
     val = lastVal+1
-    MIN = 750
+    MIN = 500
     MAX = 5000
     energy_data = pd.read_csv("Data_set.csv")
     solar = energy_data["generation solar"]
@@ -135,6 +127,17 @@ def get_ph(npk_vals):
     # here between 5 and 8
     return 0.05*npk_vals+5
 
+def get_timestamp(val,seconds=0):
+    # here between 5 and 8
+    energy_data = pd.read_csv("Data_set.csv")
+    year = energy_data["year"]
+    month = energy_data["month"]
+    day = energy_data["day"]
+    hour = energy_data["hour"]
+    timestamp = datetime.datetime(year=year[val],month=month[val],day=day[val],hour=hour[val],minute=0,second=seconds).strftime("%m/%d/%Y, %H:%M:%S")
+    return timestamp
+
+
 def paho_client():
     # CLIENT PAHO
     port = 1883
@@ -144,80 +147,91 @@ def paho_client():
     client_id = f'Solar_Client'
     client = paho.Client(client_id)
     client.username_pw_set(username, password)
-    if client.connect("localhost",1883,60)!=0:
+    if client.connect("192.168.152.161",1883,60)!=0:
         print("Could not connect to MQTT Broker!")
         sys.exit(-1)
     else:
         print("connected")
+    client.publish("Agriculture/solar",1)
     return client
     #client.disconnect()
 
-
-
-# Pressure()
-# solarEval()
 def main(client):
     val = random.randint(0,35000)
     i = 0
     lastFeeding = 40
     lastWatering = 10
     while(True):
-        Solar,Pressure,Temp,Humidity,npk_val,ph,soil_moist,time_stamp = None,None,None,None,None,None,None,datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
-        time.sleep(3)
+        time.sleep(5)
+        Solar,Pressure,Temp,Humidity,npk_val,ph,soil_moist = "None","None","None","None","None","None","None"
         [nextVal,Solar] = get_solar_irr(val)
+        solarTime,pressureTime,tempTime,humidityTime,npkTime,phTime,moistTime,feedingTime,wateringTime = "None","None","None","None","None","None","None","None","None"
+        solarTime = get_timestamp(val,0)
+        print(Solar)
         if(Solar>0.0):
             # Converted from Pascal to Percent
             Pressure = get_pressure(val)
+            pressureTime = get_timestamp(val,1)
             # in °C
             Temp = get_temp(val)
+            tempTime = get_timestamp(val,2)
+
             # In Percent
             Humidity = get_humidity(val)
+            humidityTime = get_timestamp(val,3)
+
             # in ppm (40-60 is optimum)
             npk_val = get_npks(lastFeeding)
+            npkTime = get_timestamp(val,4)
+
             # In Percent
             soil_moist = get_soil_moist(val,Temp,lastWatering)
+            moistTime = get_timestamp(val,5)
+
             # In ph Scale
             ph = get_ph(npk_val)
+            phTime = get_timestamp(val,6)
+
+            # water actuator
+            lastWatering -= Water_Actuator(humidity=Humidity)
+            feedingTime = get_timestamp(val, 10)
+            lastFeeding -= Nutrition_Actuator(npk_val)
+            wateringTime = get_timestamp(val, 12)
+
+         
+
+
             
-        client.publish("Agriculture/solar",Solar)
-        client.publish("Agriculture/pressure",Pressure)
-        client.publish("Agriculture/temp",Temp)
-        client.publish("Agriculture/humidity",Humidity)
-        client.publish("Agriculture/npk_val",npk_val)
-        client.publish("Agriculture/soil_moist",soil_moist)
-        client.publish("Agriculture/ph",ph)
-        client.publish("Agriculture/nutriScore",lastFeeding)
-        client.publish("Agriculture/waterScore",lastWatering)
-        client.publish("Agriculture/timeStamp",time_stamp)
+            client.publish("Agriculture/solar",str(Solar)+","+solarTime)
+            client.publish("Agriculture/pressure",str(Pressure)+","+pressureTime)
+            client.publish("Agriculture/temp",str(Temp)+","+tempTime)
+            client.publish("Agriculture/humidity",str(Humidity)+","+humidityTime)
+            client.publish("Agriculture/npk_val",str(npk_val)+","+npkTime)
+            client.publish("Agriculture/soil_moist",str(soil_moist)+","+moistTime)
+            client.publish("Agriculture/ph",str(ph)+","+phTime)
+            client.publish("Agriculture/feeding",str(lastWatering)+","+feedingTime)
+            client.publish("Agriculture/watering",str(lastFeeding)+","+wateringTime)
+        # client.publish("Agriculture/timeStamp",time_stamp)
 
         lastFeeding+=1
         if(lastWatering<100):
             lastWatering+=1
-        print(i)
         val = nextVal
         arr = [Solar,Pressure,Temp,Humidity,npk_val,ph,soil_moist,lastFeeding,lastWatering]
         i+=1
-        # with open('sensor_data.csv', 'a',newline='') as f_object:
-        #     # Pass this file object to csv.writer()
-        #     # and get a writer object
-        #     writer_object = writer(f_object)
+
+        with open('sensor_data.csv', 'a',newline='') as f_object:
+            # Pass this file object to csv.writer()
+            # and get a writer object
+            writer_object = writer(f_object)
         
-        #     # Pass the list as an argument into
-        #     # the writerow()
-        #     writer_object.writerow(arr)
+            # Pass the list as an argument into
+            # the writerow()
+            writer_object.writerow(arr)
         
-        #     # Close the file object
-        #     f_object.close()
+            # Close the file object
+            f_object.close()
 
 
 client = paho_client()
 main(client)
-
-plt.rcParams["figure.figsize"] = [7.50, 3.50]
-plt.rcParams["figure.autolayout"] = True
-
-headers = ["Solar","Pressure","Temp","Humidity","npk_val","ph","soil_moist","lastFeeding","lastWatering"]
-
-df = pd.read_csv('sensor_data.csv')
-df.plot()
-plt.show()
