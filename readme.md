@@ -30,4 +30,14 @@ Pressure - converted from Pascal into Percentages
 - Nutrition Actuators in ppm
 - Water actuator in percent (just for simulation purposes)
 
+How to run the code (locally)
+
+- Pull Code from Docker,
+- Change Host globally to either localhost or your IP (currently running on internal IP)
+- start MQTT Broker on port 1883 
+- start Actuator by Navigating into Actuators Folder and running command "python Actuators.py"
+- start Sensors by Navigating into Actuators Folder and running command "python Sensors.py"
+- start Gateway by Navigating into Gateway Folder and running command "python Gateway.py"
+- If you want to start the Actuators with Nodered, run the Docker Container (also change the IP to your IP in the Gateway in Node-Red)
+- Instead of starting the services through a Git Pull, the implementations are also on Dockerhub
 
