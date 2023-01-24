@@ -1,0 +1,6 @@
+version: "2.2"
+services:
+  gateway:
+    build: .
+    ports: 
+      - "1882:1882"

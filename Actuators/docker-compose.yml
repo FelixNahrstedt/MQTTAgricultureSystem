@@ -1,0 +1,6 @@
+version: "2.2"
+services:
+  actuators:
+    build: .
+    ports: 
+      - "1883:1883"

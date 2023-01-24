@@ -13,11 +13,10 @@ def on_connect(client, userdata, flags, rc):
     client.subscribe("Agriculture/npk_val")
     client.subscribe("Agriculture/soil_moist")
     client.subscribe("Agriculture/ph")
-    client.subscribe("Agriculture/Nutrition_Actuator")
-    client.subscribe("Agriculture/Water_Actuator")
-    client.subscribe("Agriculture/timeStamp")
+    client.subscribe("Agriculture/watering")
+    client.subscribe("Agriculture/feeding")
 
-["temp","humidity","solar","ph","moist","npk","pressure","lastfeeding","watering"] #add Val or Timestamp
+["temp","humidity","solar","ph","moist","npk","pressure","feeding","watering"] #add Val or Timestamp
 json_thing = {
     "tempVal":None,
     "tempTimestamp": None,
@@ -33,8 +32,8 @@ json_thing = {
     "npkTimestamp": None,
     "pressureVal":None,
     "pressureTimestamp": None,
-    "lastfeeingVal":None,
-    "lastfeedingTimestamp": None,
+    "feedingVal":None,
+    "feedingTimestamp": None,
     "wateringVal":None,
     "wateringTimestamp": None
 }
@@ -42,55 +41,57 @@ json_thing = {
 def on_message(client, userdata, msg):
     global json_thing
     data = msg.payload.decode("utf-8")
-    [val,time1,time2] = str(data).split(",")
+    [val,time1] = str(data).split(",")
+    time1 = int(float(time1))
 
     if(str(msg.topic)=="Agriculture/solar"):
-        myObj = {"solarVal": float(val), "solarTimestamp": time1+time2}
-        response = requests.post("https://se4gdiot.herokuapp.com/persist/solar", json = myObj)
+        myObj = {"solarVal": float(val), "solarTimestamp": time1}
+        response = requests.post("https://iotsegd.herokuapp.com/persist/solar", json = myObj)
         print(f"{msg.topic}: {response.status_code}")
     elif(str(msg.topic)=="Agriculture/pressure"):
-        myObj = {"pressureVal": float(val), "pressureTimestamp": time1+time2}
-        response = requests.post("https://se4gdiot.herokuapp.com/persist/pressure", json = myObj)
+        myObj = {"pressureVal": float(val), "pressureTimestamp": time1}
+        response = requests.post("https://iotsegd.herokuapp.com/persist/pressure", json = myObj)
         print(f"{msg.topic}: {response.status_code}")
     elif(str(msg.topic)=="Agriculture/temp"):
-        myObj = {"tempVal": float(val), "tempTimestamp": time1+time2}
-        response = requests.post("https://se4gdiot.herokuapp.com/persist/temperature", json = myObj)
+        myObj = {"tempVal": float(val), "tempTimestamp": time1}
+        response = requests.post("https://iotsegd.herokuapp.com/persist/temperature", json = myObj)
         print(f"{msg.topic}: {response.status_code}")
     elif(str(msg.topic)=="Agriculture/humidity"):
-        myObj = {"humidityVal": float(val), "humidityTimestamp": time1+time2}
-        response = requests.post("https://se4gdiot.herokuapp.com/persist/humidity", json = myObj)
+        myObj = {"humidityVal": float(val), "humidityTimestamp": time1}
+        response = requests.post("https://iotsegd.herokuapp.com/persist/humidity", json = myObj)
         print(f"{msg.topic}: {response.status_code}")
     elif(str(msg.topic)=="Agriculture/npk_val"):
-        myObj = {"npkVal": float(val), "npkTimestamp": time1+time2}
-        response = requests.post("https://se4gdiot.herokuapp.com/persist/npk", json = myObj)
+        myObj = {"npkVal": float(val), "npkTimestamp": time1}
+        response = requests.post("https://iotsegd.herokuapp.com/persist/npk", json = myObj)
         print(f"{msg.topic}: {response.status_code}")
     elif(str(msg.topic)=="Agriculture/soil_moist"):
-        myObj = {"moistVal": float(val), "moistTimestamp": time1+time2}
-        response = requests.post("https://se4gdiot.herokuapp.com/persist/moisture", json = myObj)
+        myObj = {"moistVal": float(val), "moistTimestamp": time1}
+        response = requests.post("https://iotsegd.herokuapp.com/persist/moisture", json = myObj)
         print(f"{msg.topic}: {response.status_code}")
     elif(str(msg.topic)=="Agriculture/ph"):
-        myObj = {"phVal": float(val), "phTimestamp": time1+time2}
-        response = requests.post("https://se4gdiot.herokuapp.com/persist/ph", json = myObj)
+        myObj = {"phVal": float(val), "phTimestamp": time1}
+        response = requests.post("https://iotsegd.herokuapp.com/persist/ph", json = myObj)
         print(f"{msg.topic}: {response.status_code}")
     if(str(msg.topic)=="Agriculture/watering"):
-        myObj = {"wateringValVal": float(val), "wateringValTimestamp": time1+time2}
-        response = requests.post("https://se4gdiot.herokuapp.com/persist/watering", json = myObj)
+        myObj = {"wateringVal": float(val), "wateringTimestamp": time1}
+        response = requests.post("https://iotsegd.herokuapp.com/persist/watering", json = myObj)
         print(f"{msg.topic}: {response.status_code}")
     elif(str(msg.topic)=="Agriculture/feeding"):
-        myObj = {"feedingVal": float(val), "feedingTimestamp": time1+time2}
-        response = requests.post("https://se4gdiot.herokuapp.com/persist/feeding", json = myObj)
+        myObj = {"feedingVal": float(val), "feedingTimestamp": time1}
+        response = requests.post("https://iotsegd.herokuapp.com/persist/feeding", json = myObj)
         print(f"{msg.topic}: {response.status_code}")
             
                 
 
 def main():
     global json_thing
-    username = 'agricultureLove'
+    adress = "157.24.104.89"
+    username = 'mosquittoBroker'
     password = 'se4gd'
     client = paho.Client("solar_fetcher") # client ID "mqtt-test"
     client.on_connect = on_connect
     client.on_message = on_message
     client.username_pw_set(username, password)
-    client.connect('192.168.152.161', 1883)
+    client.connect(adress, 1883)
     client.loop_forever() 
 main()

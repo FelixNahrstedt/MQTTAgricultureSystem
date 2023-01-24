@@ -130,24 +130,26 @@ def get_ph(npk_vals):
 def get_timestamp(val,seconds=0):
     # here between 5 and 8
     energy_data = pd.read_csv("Data_set.csv")
-    year = energy_data["year"]
-    month = energy_data["month"]
-    day = energy_data["day"]
+    year = datetime.datetime.today().year
+    month = datetime.datetime.today().month
+    day = datetime.datetime.today().day -1
     hour = energy_data["hour"]
-    timestamp = datetime.datetime(year=year[val],month=month[val],day=day[val],hour=hour[val],minute=0,second=seconds).strftime("%m/%d/%Y, %H:%M:%S")
+    timestamp = datetime.datetime(year=year,month=month,day=day,hour=hour[val],minute=0,second=seconds)
+    timestamp = time.mktime(timestamp.timetuple())*1000
+    #timestamp = datetime.datetime(year=year,month=month,day=day,hour=hour[val],minute=0,second=seconds).strftime("%m/%d/%Y, %H:%M:%S")
     return timestamp
 
 
 def paho_client():
     # CLIENT PAHO
     port = 1883
-    broker = f'mqtt://192.168.199.161:{port}/'
-    username = 'agricultureLove'
+    broker = f'mqtt://157.24.104.89:{port}/'
+    username = 'mosquittoBroker'
     password = 'se4gd'
     client_id = f'Solar_Client'
     client = paho.Client(client_id)
-    client.username_pw_set(username, password)
-    if client.connect("192.168.152.161",1883,60)!=0:
+    client.username_pw_set(username,password)
+    if client.connect("157.24.104.89",1883,60)!=0:
         print("Could not connect to MQTT Broker!")
         sys.exit(-1)
     else:
@@ -157,17 +159,18 @@ def paho_client():
     #client.disconnect()
 
 def main(client):
-    val = random.randint(0,35000)
+    val = 8795#random.randint(0,35000)
     i = 0
     lastFeeding = 40
     lastWatering = 10
     while(True):
         time.sleep(5)
+
         Solar,Pressure,Temp,Humidity,npk_val,ph,soil_moist = "None","None","None","None","None","None","None"
         [nextVal,Solar] = get_solar_irr(val)
         solarTime,pressureTime,tempTime,humidityTime,npkTime,phTime,moistTime,feedingTime,wateringTime = "None","None","None","None","None","None","None","None","None"
         solarTime = get_timestamp(val,0)
-        print(Solar)
+        print(f"Solar Irradiance: {str(Solar)}")
         if(Solar>0.0):
             # Converted from Pascal to Percent
             Pressure = get_pressure(val)
@@ -200,17 +203,16 @@ def main(client):
 
          
 
-
             
-            client.publish("Agriculture/solar",str(Solar)+","+solarTime)
-            client.publish("Agriculture/pressure",str(Pressure)+","+pressureTime)
-            client.publish("Agriculture/temp",str(Temp)+","+tempTime)
-            client.publish("Agriculture/humidity",str(Humidity)+","+humidityTime)
-            client.publish("Agriculture/npk_val",str(npk_val)+","+npkTime)
-            client.publish("Agriculture/soil_moist",str(soil_moist)+","+moistTime)
-            client.publish("Agriculture/ph",str(ph)+","+phTime)
-            client.publish("Agriculture/feeding",str(lastWatering)+","+feedingTime)
-            client.publish("Agriculture/watering",str(lastFeeding)+","+wateringTime)
+            client.publish("Agriculture/solar",str(Solar)+","+str(solarTime))
+            client.publish("Agriculture/pressure",str(Pressure)+","+str(pressureTime))
+            client.publish("Agriculture/temp",str(Temp)+","+str(tempTime))
+            client.publish("Agriculture/humidity",str(Humidity)+","+str(humidityTime))
+            client.publish("Agriculture/npk_val",str(npk_val)+","+str(npkTime))
+            client.publish("Agriculture/soil_moist",str(soil_moist)+","+str(moistTime))
+            client.publish("Agriculture/ph",str(ph)+","+str(phTime))
+            #client.publish("Agriculture/feeding",str(lastWatering)+","+str(feedingTime))
+            #client.publish("Agriculture/watering",str(lastFeeding)+","+str(wateringTime))
         # client.publish("Agriculture/timeStamp",time_stamp)
 
         lastFeeding+=1
@@ -231,6 +233,9 @@ def main(client):
         
             # Close the file object
             f_object.close()
+        
+
+    
 
 
 client = paho_client()

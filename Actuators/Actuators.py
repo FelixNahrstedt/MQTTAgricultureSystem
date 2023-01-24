@@ -5,8 +5,8 @@ import paho.mqtt.client as paho
 def paho_client():
     # CLIENT PAHO
     port = 1883
-    broker = f'mqtt://192.168.199.161:{port}/'
-    username = 'agricultureLove'
+    broker = f'mqtt://localhost:{port}/'
+    username = 'mosquittoBroker'
     password = 'se4gd'
     client_id = f'Solar_Client'
     client = paho.Client(client_id)
@@ -51,34 +51,33 @@ def on_connect(client, userdata, flags, rc):
 
 def on_message(client, userdata, msg):
     data = msg.payload.decode("utf-8")
+    [val,time] = str(data).split(",")
+
     if(str(msg.topic)=="Agriculture/solar"):
-        print(float(data))
+        print(float(val))
     elif(str(msg.topic)=="Agriculture/soil_moist"):
-        if(data != "None"):
-            Watering = Water_Actuator(float(data))
+        if(val != "None"):
+            Watering = Water_Actuator(float(val))
             client.publish("Agriculture/Water_Actuator",Watering)
+            print(f"Watering soil:{Watering}")
 
 
     elif(str(msg.topic)=="Agriculture/npk_val"):
-        if(data != "None"):
-            Feeding = Nutrition_Actuator(float(data))
+        if(val != "None"):
+            Feeding = Nutrition_Actuator(float(val))
             client.publish("Agriculture/Nutrition_Actuator",Feeding)
+            print(f"Feeding soil:{Feeding}")
 
-    # For Activation of Nutrition Actuator
-    #lastFeeding = Nutrition_Actuator(npk_val,lastFeeding)
-    # For Activation of Water Actuator
-    #lastWatering = Water_Actuator(soil_moist,lastWatering)
 
 
 def main():
-    global data
-    username = 'agricultureLove'
+    username = 'mosquittoBroker'
     password = 'se4gd'
     client = paho.Client("solar_fetcher") # client ID "mqtt-test"
     client.on_connect = on_connect
     client.on_message = on_message
     client.username_pw_set(username, password)
-    client.connect('192.168.152.161', 1883)
+    client.connect('localhost', 1883)
     client.loop_forever() 
     #client.loop_forever()
 
