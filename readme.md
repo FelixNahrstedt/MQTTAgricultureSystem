@@ -12,7 +12,9 @@ The Simulations are based on a kaggle dataset that includes weather and solar in
 These include not only both actuators (water and nutrition), that were used to get more fluctuation into the dataset to make it appear more realistic. The first of the self implemented simulated sensors is the N-P-K-Sensor. 
 These three numbers form what is called the fertilizer's N-P-K ratio — the proportion of three plant nutrients in order: nitrogen (N), phosphorus (P) and potassium (K). The N-P-K numbers reflect each nutrient's percentage by weight. They are strongly based on the last time that nutrients have been added. Hence, the more time has passed since the last “feeding” of the plants - more nutrients need to be added by the actuators because of a lower NPK number. 
 The ph value of the soil is also based on the nutrients in the soil. Because the npk value is generally in ppm with an optimum between 40 and 60 and a simulated minimum of 0 and maximum of 70, the following formula has been designed for simulating the ph with optimal value of 7 and slightly base or acidic probabilities as well: 
+
 - ph = 0.05*npk+5
+
 Regarding the soil moisture, it is (in a high level of abstraction) influenced by the temperature because of vaporisation, the air humidity that is sensed and the last time the water sensors have been activated. The humidity has been min-max normalised and randomly fluctuates because of different soil composition (random.uniform(0.8,0.9)).
 
 
@@ -20,12 +22,12 @@ Regarding the soil moisture, it is (in a high level of abstraction) influenced b
 The units for our simulation are as follows: 
 Solar irradiance in percent (min-max normalised values out of a large kaggle dataset)
 Pressure - converted from Pascal into Percentages
-Temperature in °C 
-Humidity of the air in Percentages
-NPK values in parts per million (ppm)
-Soil Moisture in percent
-Ph values in the ph scale 
-Nutrition Actuators in ppm
-Water actuator in percent (just for simulation purposes)
+- Temperature in °C 
+- Humidity of the air in Percentages
+- NPK values in parts per million (ppm)
+- Soil Moisture in percent
+- Ph values in the ph scale 
+- Nutrition Actuators in ppm
+- Water actuator in percent (just for simulation purposes)
 
 
